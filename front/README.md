@@ -1,4 +1,4 @@
-# shawa
+# SRL Frontend running
 
 ## Project setup
 ```
