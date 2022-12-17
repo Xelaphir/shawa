@@ -7,6 +7,7 @@ class ComponentType(models.Model):
     type = models.CharField(max_length=20)
     # what types are compatible with each other
     # not sauce with beverage, wrapper to wrapper, etc
+    # todo: remove compability
     compability = models.ManyToManyField('self')
 
     def __str__(self):
@@ -19,6 +20,7 @@ class Component(models.Model):
     rarity = models.PositiveSmallIntegerField()
     # common components is such components that everybody owns
     # not-common components are gotten from the roulette
+    # todo: common = rarity 5
     is_common = models.BooleanField(default=True)
     type = models.ForeignKey(ComponentType, null=True, on_delete=models.SET_NULL)
     # cost for 1 kilo of component
@@ -115,14 +117,14 @@ class RecipeComposition(models.Model):
     def __str__(self):
         return str(self.component.name) + ' имеется в рецепте ' + str(self.recipe.name)
 
-
+# todo: quantity for each component
 # Lot for an auction
 # It should has one-to-many field to ComponentOwnership, but there isn't such field
 # so ComponentOwnership has foreign key to this shit
 class Lot(models.Model):
     seller = models.ForeignKey(Customer, related_name='lot_seller', on_delete=models.CASCADE)
     purchaser = models.ForeignKey(Customer, related_name='lot_purchaser', null=True, on_delete=models.SET_NULL)
-    price = models.PositiveIntegerField
+    price = models.PositiveIntegerField()
 
     def __str__(self):
         return str(self.seller) + ' предлагает че-то купить за ' + str(self.price)
