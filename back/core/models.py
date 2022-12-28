@@ -1,19 +1,15 @@
 from django.db import models
 
 
-# wrapper, topping, sauces, beverage, doping
 class ComponentType(models.Model):
-    type = models.CharField(max_length=20)
+    # wrp=wrapper, tpp=topping, sau=sauce, dcr=decoration, bvr=beverage, dpn=doping
+    name = models.CharField(max_length=3)
     compability = models.ManyToManyField('self')
-
-    MEASURE_CHOICES = [
-        ('m', 'мл'),    # beverages
-        ('g', 'гр'),    # others
-    ]
-    measure = models.CharField(max_length=1, choices=MEASURE_CHOICES, default='g')
+    # g=гр, m=мл, q=шт
+    measure = models.CharField(max_length=1, default='g')
 
     def __str__(self):
-        return 'Тип компонента ' + self.type
+        return 'Тип компонента ' + self.name
 
 
 # kinds of components
@@ -33,9 +29,10 @@ class Component(models.Model):
 
     # as component called in recipe making, roulette, auctions etc
     name = models.CharField(max_length=20)
-    # в предложном падеже и творительном падеже
-    name_in = models.CharField(max_length=20)
-    name_with = models.CharField(max_length=20)
+    # в предложном падеже или творительном падеже
+    name_in_with = models.CharField(max_length=20)
+    # delicious description
+    desc = models.CharField(max_length=50, default='')
 
     def __str__(self):
         return 'Компонент ' + self.name
@@ -61,18 +58,18 @@ class Customer(models.Model):
     coins = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return 'Ну тупа наш клиент' + str(self.id)
+        return 'Ну тупа наш клиент ' + str(self.id)
 
 
 # intermediate tables for many-to-many relations with additional columns like qty
 class ComponentOwnership(models.Model):
     owner = models.ForeignKey(Customer, on_delete=models.CASCADE)
     component = models.ForeignKey(Component, on_delete=models.CASCADE)
-    qty = models.PositiveIntegerField()
+    qty = models.PositiveSmallIntegerField(default=1)
 
     # ! self.qty >= self.lot_qty !
     lot = models.ForeignKey('Lot', null=True, on_delete=models.SET_NULL, default=None)
-    lot_qty = models.PositiveSmallIntegerField()
+    lot_qty = models.PositiveSmallIntegerField(null=True, default=None)
 
     def __str__(self):
         return str(self.owner) + ' владеет компонентом ' \
@@ -82,7 +79,7 @@ class ComponentOwnership(models.Model):
 class DiscountOwnership(models.Model):
     owner = models.ForeignKey(Customer, on_delete=models.CASCADE)
     rarity = models.ForeignKey(Discount, on_delete=models.CASCADE, db_column='discount_rarity')
-    qty = models.PositiveIntegerField()
+    qty = models.PositiveSmallIntegerField(default=1)
 
     def __str__(self):
         return str(self.owner) + ' владеет скидкочными картами в ' \
@@ -95,7 +92,7 @@ class DiscountOwnership(models.Model):
 class Lot(models.Model):
     seller = models.ForeignKey(Customer, related_name='lot_seller', on_delete=models.CASCADE)
     purchaser = models.ForeignKey(Customer, related_name='lot_purchaser', null=True, on_delete=models.SET_NULL)
-    price = models.PositiveIntegerField()
+    price = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return str(self.seller) + ' предлагает че-то купить за ' + str(self.price)
@@ -120,7 +117,7 @@ class RecipeComposition(models.Model):
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
     component = models.ForeignKey(Component, on_delete=models.CASCADE)
     # may vary from component.min_qty up to component.max_qty
-    qty = models.PositiveIntegerField()
+    qty = models.PositiveSmallIntegerField()
 
     def __str__(self):
         return str(self.component.name) + ' имеется в рецепте ' + str(self.recipe.name)
@@ -133,7 +130,7 @@ class Order(models.Model):
     # sum of recipes's prices
     price = models.PositiveIntegerField()
     # applied discount
-    discount = models.ForeignKey(DiscountOwnership, null=True, on_delete=models.SET_NULL)
+    discount = models.ForeignKey(DiscountOwnership, null=True, on_delete=models.SET_NULL, default=None)
 
     def __str__(self):
         return 'Заказ от ' + str(self.customer) + ' на сумму ' + str(self.price) + ' бубликов'
