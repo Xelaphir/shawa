@@ -20,4 +20,7 @@ urlpatterns = [
     # ownerships of discounts i.e. tuple of (rarity, percent, qty(may be null))
     path('customer/discounts/<int:pk>', DiscountsList.as_view()),
     path('customer/discounts/<str:username>', DiscountsList.as_view()),
+
+    # path('auction/all', AllLotsList.as_view()),
+    # path('auction/popular', PopularLotsList.as_view()),
 ]

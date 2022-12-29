@@ -1,15 +1,17 @@
 from django.db import models
 
 
+# general types of components, classified by using in the same way
 class ComponentType(models.Model):
     # wrp=wrapper, tpp=topping, sau=sauce, dcr=decoration, bvr=beverage, dpn=doping
     name = models.CharField(max_length=3)
+    # e.g., it's impossible to mix wrapper with beverage in one recipe...
     compability = models.ManyToManyField('self')
     # g=гр, m=мл, q=шт
     measure = models.CharField(max_length=1, default='g')
 
     def __str__(self):
-        return 'Тип компонента ' + self.name
+        return 'Тип компонента {}'.format(self.name)
 
 
 # kinds of components
@@ -32,10 +34,10 @@ class Component(models.Model):
     # в предложном падеже или творительном падеже
     name_in_with = models.CharField(max_length=20)
     # delicious description
-    desc = models.CharField(max_length=50, default='')
+    desc = models.CharField(max_length=50, blank=True, default='')
 
     def __str__(self):
-        return 'Компонент ' + self.name
+        return 'Компонент {}'.format(self.name)
 
 
 # discount got after component exchange
@@ -47,8 +49,8 @@ class Discount(models.Model):
     percents = models.PositiveSmallIntegerField()
 
     def __str__(self):
-        return 'Скидка ' + str(self.percents) + \
-               ' при обмене компонентов редкости ' + str(self.rarity)
+        return 'Скидка {}% при обмене компонентов редкости {}'\
+            .format(str(self.percents), str(self.rarity))
 
 
 # TODO: add AbstractUser with authorization
@@ -58,10 +60,10 @@ class Customer(models.Model):
     coins = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return 'Ну тупа наш клиент ' + str(self.id)
+        return 'Ну тупа наш клиент {}'.format(str(self.id))
 
 
-# intermediate tables for many-to-many relations with additional columns like qty
+# intermediate tables for M2M ownerships with additional columns like qty
 class ComponentOwnership(models.Model):
     owner = models.ForeignKey(Customer, on_delete=models.CASCADE)
     component = models.ForeignKey(Component, on_delete=models.CASCADE)
@@ -72,72 +74,141 @@ class ComponentOwnership(models.Model):
     lot_qty = models.PositiveSmallIntegerField(null=True, default=None)
 
     def __str__(self):
-        return str(self.owner) + ' владеет компонентом ' \
-               + str(self.component.name) + ' в количестве ' + str(self.qty)
+        return '{} владеет компонентом {} в количестве {} шт'\
+                    .format(str(self.owner), self.component.name, str(self.qty))
 
 
 class DiscountOwnership(models.Model):
     owner = models.ForeignKey(Customer, on_delete=models.CASCADE)
-    rarity = models.ForeignKey(Discount, on_delete=models.CASCADE, db_column='discount_rarity')
+    rarity = models.ForeignKey(Discount, on_delete=models.CASCADE, db_column='rarity')
     qty = models.PositiveSmallIntegerField(default=1)
 
     def __str__(self):
-        return str(self.owner) + ' владеет скидкочными картами в ' \
-               + str(self.rarity.percents) + '% в количестве ' + str(self.qty)
+        return '{} владеет скидкой на {}% в количестве {}'\
+            .format(str(self.owner), str(self.rarity.percents), str(self.qty))
 
 
 # Lot for an auction
 # It should has one-to-many field to ComponentOwnership, but there isn't such field
 # so ComponentOwnership has foreign key to this shit
 class Lot(models.Model):
-    seller = models.ForeignKey(Customer, related_name='lot_seller', on_delete=models.CASCADE)
-    purchaser = models.ForeignKey(Customer, related_name='lot_purchaser', null=True, on_delete=models.SET_NULL)
+    # see Comment for explanations
+    seller_comm = models.ForeignKey('Comment', related_name='seller_comm', on_delete=models.RESTRICT)
+    purchaser = models.ForeignKey('Customer', related_name='lot_purchaser', null=True, on_delete=models.SET_NULL)
     price = models.PositiveIntegerField(default=0)
+    # see LotStat for explanations
+    stat = models.ForeignKey('LotStat', related_name='stat', on_delete=models.RESTRICT)
 
     def __str__(self):
-        return str(self.seller) + ' предлагает че-то купить за ' + str(self.price)
+        return '{} предлагает че-то купить за {}'\
+            .format(str(self.seller_comm.author), str(self.price))
 
 
 # Just a combination of compatible components
 class Recipe(models.Model):
-    name = models.CharField(max_length=40, default='')
-    author = models.ForeignKey(Customer, on_delete=models.CASCADE)
-    composition = models.ManyToManyField(Component, through='RecipeComposition')
-    price = models.PositiveIntegerField()
+    # see Comment for explanations
+    author_comm = models.ForeignKey('Comment', related_name='author_comm', on_delete=models.RESTRICT)
+    composition = models.ManyToManyField('Component', through='RecipeComposition')
+    price = models.PositiveIntegerField(default=0)
     is_private = models.BooleanField(default=True)
-    rating = models.PositiveIntegerField(null=True, default=0)
+    # see RecipeStat for explanations
+    stat = models.ForeignKey('RecipeStat', related_name='stat', on_delete=models.RESTRICT)
 
     def __str__(self):
-        return 'Рецепт ' + self.name + ' от ' + str(self.author)
+        return 'Рецепт {} от {}'.format(self.author_comm.text, str(self.author_comm.author))
 
 
-# intermediate table for many-to-many relation between recipes and components
-# with additional column qty
+# intermediate table for M2M relation between recipes and components with additional column qty
 class RecipeComposition(models.Model):
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
-    component = models.ForeignKey(Component, on_delete=models.CASCADE)
+    recipe = models.ForeignKey('Recipe', on_delete=models.CASCADE)
+    component = models.ForeignKey('Component', on_delete=models.CASCADE)
     # may vary from component.min_qty up to component.max_qty
     qty = models.PositiveSmallIntegerField()
 
     def __str__(self):
-        return str(self.component.name) + ' имеется в рецепте ' + str(self.recipe.name)
+        return '{} имеется в рецепте {} в количестве {}'\
+            .format(self.component.name, str(self.recipe.id), str(self.qty))
+
+
+# Lot and Recipe have FK to the Comment for the following reasons:
+# Comment has (author, text) = (Customer FK, TextField)
+#                            = (LotSeller/RecipeAuthor, comm)
+# another customers can write comments with arbitrary nesting level - work for reply_to field
+class Comment(models.Model):
+    author = models.ForeignKey('Customer', related_name='author', on_delete=models.CASCADE)
+    text = models.TextField(max_length=1000, blank=True, default='')
+    reply_to = models.ForeignKey('Comment', null=True, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return '{} написал: {}'.format(str(self.author), self.text)
+
+
+# inherited class for the LotStat and RecipeStat
+class Stat(models.Model):
+    # lets count requests to backend from authorized customers
+    views = models.PositiveIntegerField(default=0)
+    comments_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        abstract = True
+
+
+# each lot may be rated with thumb up or down
+# to prevent repeatable votes from one customer we should save customers votes
+class LotStat(Stat):
+    upvotes = models.ManyToManyField('Customer', related_name='upvotes')
+    downvotes = models.ManyToManyField('Customer', related_name='downvotes')
+
+    def __str__(self):
+        return 'Пальцев вверх {} и вниз {}'.format(str(self.upvotes.count()), str(self.downvotes.count()))
+
+
+# likely to LotStat yet each recipe can be rated with more votes (reactions)
+class RecipeStat(Stat):
+    reactions = models.ManyToManyField('Customer', through='RecipeStatReactions')
+
+    def __str__(self):
+        return 'Всего реакций {}'.format(str(self.reactions.count()))
+
+
+# our measure of taste
+class Reaction(models.Model):
+    # dsg=disgusting, ins=insipid, swt=sweet, slt=salty, btr=bitter, sor=sour, ppr=pepper
+    taste = models.CharField(max_length=3)
+
+    def __str__(self):
+        return 'Вкус {}'.format(self.taste)
+
+
+# intermediate table for M2M relations between recipe stats and customers
+# with additional field reaction
+class RecipeStatReactions(models.Model):
+    stat = models.ForeignKey('RecipeStat', on_delete=models.CASCADE)
+    customer = models.ForeignKey('Customer', on_delete=models.CASCADE)
+    reaction = models.ForeignKey('Reaction', on_delete=models.CASCADE)
+
+    def __str__(self):
+        return '{} отреагировал: {}'.format(str(self.customer), str(self.reaction))
 
 
 # set of recipes
 class Order(models.Model):
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
-    recipes = models.ManyToManyField(Recipe, through='OrderComposition')
+    customer = models.ForeignKey('Customer', on_delete=models.CASCADE)
+    recipes = models.ManyToManyField('Recipe', through='OrderComposition')
     # sum of recipes's prices
     price = models.PositiveIntegerField()
     # applied discount
-    discount = models.ForeignKey(DiscountOwnership, null=True, on_delete=models.SET_NULL, default=None)
+    discount = models.ForeignKey('DiscountOwnership', null=True, on_delete=models.SET_NULL, default=None)
 
     def __str__(self):
-        return 'Заказ от ' + str(self.customer) + ' на сумму ' + str(self.price) + ' бубликов'
+        return 'Заказ от {} на сумму {} бубликов'.format(str(self.customer),str(self.price))
 
 
-# composition of order with additional column qty
+# intermediate table for M2M composition of order with additional column qty
 class OrderComposition(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+    order = models.ForeignKey('Order', on_delete=models.CASCADE)
+    recipe = models.ForeignKey('Recipe', on_delete=models.CASCADE)
     qty = models.PositiveSmallIntegerField(default=1)
+
+    def __str__(self):
+        return '{} есть в {} в количестве {}'.format(str(self.recipe), str(self.order), str(self.qty))
