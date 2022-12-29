@@ -6,11 +6,12 @@ from rest_framework.response import Response
 
 from .models import *
 from .serializers import *
+from .paginators import *
 
 
 class AllComponentsList(generics.ListAPIView):
     queryset = Component.objects.all()
-    serializer_class = MainComponentSr
+    serializer_class = BriefComponentSr
 
 
 class ComponentOwnershipList(generics.ListAPIView):
@@ -29,7 +30,7 @@ class ComponentOwnershipList(generics.ListAPIView):
 
 class AvailableComponentsList(generics.ListAPIView):
     queryset = Component.objects.all()
-    serializer_class = RestComponentSr
+    serializer_class = DetailComponentSr
 
     # select only components in ownership of the specified customer applying another serializer
     def list(self, request, *args, **kwargs):
@@ -39,7 +40,7 @@ class AvailableComponentsList(generics.ListAPIView):
             ownership = ComponentOwnership.objects.filter(owner_id=kwargs['pk'])
         comp_ids = [o.component.id for o in ownership]
         available_comps = Component.objects.filter(id__in=comp_ids)
-        serializer = RestComponentSr(available_comps, many=True)
+        serializer = DetailComponentSr(available_comps, many=True)
         return Response(serializer.data)
 
 
@@ -60,7 +61,7 @@ def pick_component():
 # implementation of picking component from roulette
 class Roulette(generics.RetrieveAPIView):
     queryset = Component.objects.all()
-    serializer_class = MainComponentSr
+    serializer_class = BriefComponentSr
 
     def retrieve(self, request, *args, **kwargs):
         # picking random component
@@ -81,7 +82,7 @@ class Roulette(generics.RetrieveAPIView):
 
         # returning picked component
         component = Component.objects.get(id=comp_id)
-        serializer = MainComponentSr(component)
+        serializer = BriefComponentSr(component)
         return Response(serializer.data)
 
 
@@ -111,3 +112,9 @@ class DiscountsList(generics.ListAPIView):
         existing_discounts = DiscountOwnership.objects.filter(owner_id=pk)
         serializer = DiscountSr(existing_discounts, many=True)
         return Response(serializer.data)
+
+
+class LotsList(generics.ListAPIView):
+    queryset = Lot.objects.all()
+    serializer_class = LotSr
+    pagination_class = LotsPg

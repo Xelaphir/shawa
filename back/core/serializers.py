@@ -3,31 +3,21 @@ from .models import *
 
 
 # used in url 'components'
-class MainComponentSr(sr.ModelSerializer):
+class BriefComponentSr(sr.ModelSerializer):
     type_name = sr.CharField(max_length=3, source='type.name')
 
     class Meta:
         model = Component
-        fields = ('id',
-                  'type_name',
-                  'rarity',
-                  'name',
-                  'desc')
+        fields = ('id', 'type_name', 'rarity', 'name', 'desc')
 
 
 # used in url 'customer/components/'
-class RestComponentSr(sr.ModelSerializer):
+class DetailComponentSr(sr.ModelSerializer):
     type_measure = sr.CharField(max_length=1, source='type.measure')
 
     class Meta:
         model = Component
-        fields = ('id',
-                  'type_measure',
-                  'cost',
-                  'min_qty',
-                  'max_qty',
-                  'qty_step',
-                  'name_in_with')
+        fields = ('id', 'type_measure', 'cost', 'min_qty', 'max_qty', 'qty_step', 'name_in_with')
 
 
 # used in url 'customer/owns/components/'
@@ -45,3 +35,6 @@ class DiscountSr(sr.ModelSerializer):
     class Meta:
         model = DiscountOwnership
         fields = ('rarity', 'percents', 'qty')
+
+
+

@@ -21,6 +21,5 @@ urlpatterns = [
     path('customer/discounts/<int:pk>', DiscountsList.as_view()),
     path('customer/discounts/<str:username>', DiscountsList.as_view()),
 
-    # path('auction/all', AllLotsList.as_view()),
-    # path('auction/popular', PopularLotsList.as_view()),
+    path('lots/', LotsList.as_view()),
 ]
