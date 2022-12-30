@@ -116,5 +116,15 @@ class DiscountsList(generics.ListAPIView):
 
 class LotsList(generics.ListAPIView):
     queryset = Lot.objects.all()
-    serializer_class = LotSr
+    serializer_class = BriefLotSr
     pagination_class = LotsPg
+
+
+class LotDetail(generics.RetrieveAPIView):
+    queryset = Lot.objects.all()
+    serializer_class = DetailLotSr
+
+    def retrieve(self, request, *args, **kwargs):
+        lot = Lot.objects.get(pk=kwargs['pk'])
+        serializer = DetailLotSr(lot)
+        return Response(serializer.data)

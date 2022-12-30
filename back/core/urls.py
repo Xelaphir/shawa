@@ -21,5 +21,9 @@ urlpatterns = [
     path('customer/discounts/<int:pk>', DiscountsList.as_view()),
     path('customer/discounts/<str:username>', DiscountsList.as_view()),
 
+    # all lots in brief form (including purchased)
+    # todo: leave only open (i.e. without specified purchaser) lots
     path('lots/', LotsList.as_view()),
+    # lot details like purchaser, stat
+    path('lots/<int:pk>', LotDetail.as_view()),
 ]

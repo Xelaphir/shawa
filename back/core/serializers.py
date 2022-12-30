@@ -37,4 +37,28 @@ class DiscountSr(sr.ModelSerializer):
         fields = ('rarity', 'percents', 'qty')
 
 
+class LotItemSr(sr.ModelSerializer):
+    class Meta:
+        model = ComponentOwnership
+        fields = ('component', 'lot_qty')
 
+
+class BriefLotSr(sr.ModelSerializer):
+    consist_of = LotItemSr(many=True, read_only=True)
+
+    class Meta:
+        model = Lot
+        fields = ('price', 'consist_of')
+
+
+class DetailLotSr(sr.ModelSerializer):
+    # todo: alter src to seller_comm.author.username when ready
+    seller = sr.IntegerField(source='seller_comm.author.id')
+    comm = sr.CharField(source='seller_comm.text')
+    views = sr.IntegerField(source='stat.views')
+    comments_count = sr.IntegerField(source='stat.comments_count')
+
+    class Meta:
+        model = Lot
+        fields = ('seller', 'comm', 'purchaser', 'views',
+                  'comments_count', 'upvotes_count', 'downvotes_count')
