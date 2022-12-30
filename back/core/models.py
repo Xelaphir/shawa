@@ -116,7 +116,7 @@ class Comment(Model):
     author = ForeignKey('Customer', related_name='written_comments', on_delete=CASCADE)
     text = TextField(max_length=1000, blank=True, default='')
     reply_to = ForeignKey('Comment', related_name='self_replies',
-                                 null=True, on_delete=CASCADE)
+                          null=True, on_delete=CASCADE)
 
     # related fields
     # linked_lot OR linked_recipe, self_replies

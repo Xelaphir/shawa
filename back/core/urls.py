@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import *
 
+
 urlpatterns = [
     # all existing components briefly
     path('components', AllComponentsList.as_view()),
@@ -21,9 +22,12 @@ urlpatterns = [
     path('customer/discounts/<int:pk>', DiscountsList.as_view()),
     path('customer/discounts/<str:username>', DiscountsList.as_view()),
 
-    # all lots in brief form (including purchased)
-    # todo: leave only open (i.e. without specified purchaser) lots
+    # open lots (without specified purchaser) in brief form with paginator
     path('lots/', LotsList.as_view()),
     # lot details like purchaser, stat
-    path('lots/<int:pk>', LotDetail.as_view()),
+    path('lot/<int:pk>', LotDetail.as_view()),
+
+    # branch corresponds to comment with pk:
+    # replies, replies to replies, etc
+    path('comment/branch/<int:pk>', CommentBranch.as_view())
 ]

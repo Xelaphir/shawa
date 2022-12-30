@@ -86,14 +86,14 @@ class Roulette(generics.RetrieveAPIView):
         return Response(serializer.data)
 
 
+# implements such sql query:
+# SELECT rarity, percents, qty
+# FROM Discount LEFT JOIN DiscountOwnership USING(rarity)
+# WHERE DiscountOwnership.owner=pk
 class DiscountsList(generics.ListAPIView):
     queryset = DiscountOwnership.objects.all()
     serializer_class = DiscountSr
 
-    # implements such sql query:
-    # SELECT rarity, percents, qty
-    # FROM Discount LEFT JOIN DiscountOwnership USING(rarity)
-    # WHERE DiscountOwnership.owner=pk
     def list(self, request, *args, **kwargs):
         if 'username' in kwargs:
             pk = Customer.objects.get(username=kwargs['username']).id
@@ -114,8 +114,9 @@ class DiscountsList(generics.ListAPIView):
         return Response(serializer.data)
 
 
+# all lots briefly, 20 items per page
 class LotsList(generics.ListAPIView):
-    queryset = Lot.objects.all()
+    queryset = Lot.objects.filter(purchaser=None)
     serializer_class = BriefLotSr
     pagination_class = LotsPg
 
@@ -127,4 +128,24 @@ class LotDetail(generics.RetrieveAPIView):
     def retrieve(self, request, *args, **kwargs):
         lot = Lot.objects.get(pk=kwargs['pk'])
         serializer = DetailLotSr(lot)
+        return Response(serializer.data)
+
+
+# recursively loads all comments corresponds to specified comment:
+# replies, replies to replies, etc
+def load_replies(comm_id):
+    branch = Comment.objects.filter(pk=comm_id)
+    replies = branch.first().self_replies.all()
+    for reply in replies:
+        branch = branch | load_replies(reply.id)
+    return branch
+
+
+class CommentBranch(generics.ListAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSr
+
+    def list(self, request, *args, **kwargs):
+        branch = load_replies(kwargs['pk'])
+        serializer = CommentSr(branch, many=True)
         return Response(serializer.data)

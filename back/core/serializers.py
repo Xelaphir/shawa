@@ -52,13 +52,19 @@ class BriefLotSr(sr.ModelSerializer):
 
 
 class DetailLotSr(sr.ModelSerializer):
-    # todo: alter src to seller_comm.author.username when ready
-    seller = sr.IntegerField(source='seller_comm.author.id')
-    comm = sr.CharField(source='seller_comm.text')
     views = sr.IntegerField(source='stat.views')
     comments_count = sr.IntegerField(source='stat.comments_count')
 
     class Meta:
         model = Lot
-        fields = ('seller', 'comm', 'purchaser', 'views',
+        fields = ('purchaser', 'views',
                   'comments_count', 'upvotes_count', 'downvotes_count')
+
+
+class CommentSr(sr.ModelSerializer):
+    # todo: alter src to author.username when ready
+    author = sr.IntegerField(source='author.id')
+
+    class Meta:
+        model = Comment
+        fields = ('id', 'author', 'text', 'reply_to')
